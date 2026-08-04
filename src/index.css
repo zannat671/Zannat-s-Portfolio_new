@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-color: #0D0D0D;
+    --text-primary: #F5F4EF;
+    --text-muted: #9C9C94;
+    --accent: #3B82F6;
+    --border-color: rgba(245, 244, 239, 0.12);
+    --glass-bg: rgba(13, 13, 13, 0.75);
+  }
+  .light {
+    --bg-color: #F5F4EF;
+    --text-primary: #111111;
+    --text-muted: #6B6B63;
+    --accent: #3B82F6;
+    --border-color: rgba(17, 17, 17, 0.12);
+    --glass-bg: rgba(245, 244, 239, 0.85);
+  }
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+}
+
+.font-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 156, 148, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 156, 148, 0.5);
+}
+
+/* Custom selection */
+::selection {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
