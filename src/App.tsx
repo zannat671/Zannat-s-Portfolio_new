@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import heroVideo from './assets/hero-bg.mp4';
-import smartParkingImg from './assets/images/smart_parking_app_1785859307058.jpg';
-import aboutProfileImg from './assets/images/about_profile_pic_1785860287423.jpg';
+import smartParkingImg from './assets/images.jpg';
+import aboutProfileImg from './assets/IMG-20260314-WA0006.jpg.jpeg';
 import {
   Sun,
   Moon,
