@@ -50,6 +50,166 @@ function Reveal({
   );
 }
 
+// Typewriter text component with blinking code cursor that disappears when typing finishes
+function TypewriterText({
+  text,
+  speed = 25,
+  className = '',
+}: {
+  text: string;
+  speed?: number;
+  className?: string;
+}) {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isStarted, setIsStarted] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+
+  useEffect(() => {
+    if (!isStarted) return;
+    let i = 0;
+    setDisplayedText('');
+    setIsFinished(false);
+    const timer = setInterval(() => {
+      if (i <= text.length) {
+        setDisplayedText(text.slice(0, i));
+        i++;
+      } else {
+        setIsFinished(true);
+        clearInterval(timer);
+      }
+    }, speed);
+    return () => clearInterval(timer);
+  }, [text, speed, isStarted]);
+
+  return (
+    <motion.p
+      onViewportEnter={() => setIsStarted(true)}
+      viewport={{ once: true, margin: '-20px' }}
+      className={className}
+    >
+      <span>{displayedText}</span>
+      {!isFinished && (
+        <span className="inline-block w-[2px] h-[1.1em] bg-[#3B82F6] ml-0.5 align-middle animate-cursor" />
+      )}
+    </motion.p>
+  );
+}
+
+// Custom aesthetic cursor component with smooth trailing ring and glow matching theme
+function CustomCursor({ isDark }: { isDark: boolean }) {
+  const [mousePosition, setMousePosition] = useState({ x: -100, y: -100 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      setIsTouch(true);
+      return;
+    }
+
+    const onMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+      if (!isVisible) setIsVisible(true);
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'BUTTON' ||
+          target.tagName === 'A' ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.closest('button') ||
+          target.closest('a') ||
+          target.closest('.cursor-pointer') ||
+          target.classList.contains('cursor-pointer'))
+      ) {
+        setIsHovered(true);
+      } else {
+        setIsHovered(false);
+      }
+    };
+
+    const onMouseDown = () => setIsClicked(true);
+    const onMouseUp = () => setIsClicked(false);
+    const onMouseLeave = () => setIsVisible(false);
+    const onMouseEnter = () => setIsVisible(true);
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mouseleave', onMouseLeave);
+    document.addEventListener('mouseenter', onMouseEnter);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mouseleave', onMouseLeave);
+      document.removeEventListener('mouseenter', onMouseEnter);
+    };
+  }, [isVisible]);
+
+  if (isTouch || !isVisible) return null;
+
+  return (
+    <>
+      {/* Outer Glowing Ring */}
+      <motion.div
+        className="fixed top-0 left-0 pointer-events-none z-[9999] rounded-full"
+        animate={{
+          x: mousePosition.x - (isHovered ? 28 : 18),
+          y: mousePosition.y - (isHovered ? 28 : 18),
+          width: isHovered ? 56 : 36,
+          height: isHovered ? 56 : 36,
+          scale: isClicked ? 0.75 : 1,
+        }}
+        transition={{
+          type: 'spring',
+          damping: 26,
+          stiffness: 320,
+          mass: 0.2,
+        }}
+      >
+        <div
+          className={`w-full h-full rounded-full border transition-colors duration-200 ${
+            isHovered
+              ? 'border-[#3B82F6] bg-[#3B82F6]/20 shadow-[0_0_25px_rgba(59,130,246,0.85)]'
+              : isDark
+              ? 'border-[#60A5FA]/60 bg-[#3B82F6]/10 shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+              : 'border-[#2563EB]/70 bg-[#3B82F6]/15 shadow-[0_0_15px_rgba(37,99,235,0.4)]'
+          }`}
+        />
+      </motion.div>
+
+      {/* Inner Precision Dot */}
+      <motion.div
+        className="fixed top-0 left-0 pointer-events-none z-[10000] rounded-full"
+        animate={{
+          x: mousePosition.x - (isHovered ? 5 : 4),
+          y: mousePosition.y - (isHovered ? 5 : 4),
+          width: isHovered ? 10 : 8,
+          height: isHovered ? 10 : 8,
+          scale: isClicked ? 0.5 : 1,
+        }}
+        transition={{
+          type: 'spring',
+          damping: 35,
+          stiffness: 600,
+          mass: 0.1,
+        }}
+      >
+        <div
+          className={`w-full h-full rounded-full shadow-lg ${
+            isDark ? 'bg-[#60A5FA] shadow-[#3B82F6]' : 'bg-[#2563EB] shadow-[#2563EB]'
+          }`}
+        />
+      </motion.div>
+    </>
+  );
+}
+
 export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -192,10 +352,37 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen transition-colors duration-300 font-body overflow-x-hidden ${
+      className={`min-h-screen transition-colors duration-300 font-body overflow-x-hidden relative ${
         isDark ? 'bg-[#0D0D0D] text-[#F5F4EF]' : 'bg-[#F5F4EF] text-[#111111]'
       }`}
     >
+      {/* Custom Theme-accented Interactive Cursor */}
+      <CustomCursor isDark={isDark} />
+
+      {/* Global Fixed Background Video for continuous glass effect across all sections */}
+      <video
+        key={`main-${heroVideo}`}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="fixed inset-0 w-full h-full object-cover object-center pointer-events-none z-0 opacity-85"
+        onCanPlay={(e) => e.currentTarget.play()}
+        onError={(e) => {
+          (e.currentTarget as HTMLElement).style.display = 'none';
+        }}
+      >
+        <source src={heroVideo} type="video/mp4" />
+        <source src="/assets/hero-bg.mp4" type="video/mp4" />
+      </video>
+
+      {/* Global Glass Overlay for Contrast */}
+      <div
+        className={`fixed inset-0 pointer-events-none z-0 transition-all duration-300 ${
+          isDark ? 'bg-black/45' : 'bg-white/45'
+        }`}
+      />
+
       {/* Fixed Top Floating Centered Micro Navbar */}
       <header className="fixed top-2 inset-x-0 z-50 flex flex-col items-center px-2 pointer-events-none">
         <div
@@ -308,49 +495,33 @@ export default function App() {
       {/* Full Window Hero Section */}
       <section
         id="home"
-        className="relative w-full min-h-screen flex flex-col justify-between pt-24 pb-8 overflow-hidden bg-[#0D0D0D] scroll-mt-0 group"
+        className="relative w-full min-h-screen flex flex-col justify-between pt-24 pb-8 overflow-hidden scroll-mt-0 group z-10"
       >
-        {/* Full Screen Background Video */}
-        <video
-          key={`main-${heroVideo}`}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none z-0"
-          onCanPlay={(e) => e.currentTarget.play()}
-          onError={(e) => {
-            // Hide video element on load failure so dark fallback gradient shows
-            (e.currentTarget as HTMLElement).style.display = 'none';
-          }}
-        >
-          <source src={heroVideo} type="video/mp4" />
-          <source src="/assets/hero-bg.mp4" type="video/mp4" />
-        </video>
-
         {/* Selective Top & Bottom Cinematic Gradients */}
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 via-black/25 to-transparent z-10 pointer-events-none" />
         <div className="absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-black/95 via-black/40 to-transparent z-10 pointer-events-none" />
 
         {/* Inner Content Constrained to max-w-[90rem] for Alignment */}
         <div className="max-w-[90rem] mx-auto px-2 sm:px-4 md:px-6 w-full flex-1 flex flex-col justify-between relative z-20">
-          {/* Bottom Layout Grid: Left Display Name (Bottom-Left) + Right Bio & Action Bar (Bottom-Right) */}
+          {/* Bottom Layout Stack: Display Name (Top) + Bio & Action Bar (Bottom), both on screen left */}
           <div className="w-full pt-12 sm:pt-20 pb-4 sm:pb-6 mt-auto">
-            <Reveal className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-end w-full">
-              {/* Left Column: Massive Display Name (Bottom-Left Corner) */}
-              <div className="lg:col-span-7 flex flex-col justify-end text-left items-start w-full">
-                <h1 className="font-heading font-semibold tracking-tight text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl leading-tight text-[#F3F2EB] drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)] text-left m-0 p-0">
+            <Reveal className="flex flex-col items-start gap-4 sm:gap-6 w-full">
+              {/* Top: Display Name (Made smaller as requested) */}
+              <div className="flex flex-col justify-end text-left items-start w-full">
+                <h1 className="font-heading font-semibold tracking-tight text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight text-[#F3F2EB] drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)] text-left m-0 p-0">
                   Zannatul Fardous
                 </h1>
               </div>
 
-              {/* Right Column: Bio Paragraph + Action Bar (Pill Button + Social Icons) (Bottom-Right Corner) */}
-              <div className="lg:col-span-5 flex flex-col justify-end items-start lg:items-end text-left gap-3 w-full">
-                <div className="flex flex-col items-start gap-3 max-w-xs w-full">
-                  {/* Bio Text */}
-                  <p className="text-[11px] sm:text-xs font-normal leading-relaxed text-[#DCDAD0] drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] text-left">
-                    Full-Stack Web Developer, and intern passionate about building modern web applications and solving real-world challenges through technology.
-                  </p>
+              {/* Bottom: Bio Paragraph + Action Bar (Pill Button + Social Icons) */}
+              <div className="flex flex-col justify-end items-start text-left gap-2 sm:gap-3 w-full">
+                <div className="flex flex-col items-start gap-2.5 max-w-sm sm:max-w-md w-full">
+                  {/* Bio Text (Typewriter Effect with blinking code cursor) */}
+                  <TypewriterText
+                    text="Full-Stack Web Developer, and intern passionate about building modern web applications and solving real-world challenges through technology."
+                    speed={25}
+                    className="text-[10px] sm:text-[11px] md:text-xs font-normal leading-relaxed text-[#DCDAD0] drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] text-left min-h-[2.5em]"
+                  />
 
                   {/* Bottom Action Bar: Pill Button + Social Icons */}
                   <div className="flex items-center gap-2 flex-wrap justify-start w-full">
@@ -420,8 +591,11 @@ export default function App() {
         {/* About Section */}
         <section
           id="about"
-          className="py-20 md:py-28 scroll-mt-20 border-t border-opacity-10 transition-colors"
-          style={{ borderColor: isDark ? '#262626' : '#E0DFD8' }}
+          className={`py-12 md:py-16 px-6 sm:px-10 md:px-12 my-12 rounded-3xl border backdrop-blur-xl shadow-2xl transition-all duration-300 scroll-mt-24 ${
+            isDark
+              ? 'bg-[#0D0D0D]/60 border-white/15 text-white shadow-black/80'
+              : 'bg-[#F5F4EF]/75 border-black/15 text-black shadow-black/10'
+          }`}
         >
           <Reveal>
             <div className="space-y-16">
@@ -435,10 +609,10 @@ export default function App() {
                   {/* Profile Picture Card */}
                   <div className="relative group shrink-0">
                     <div
-                      className={`relative w-52 h-64 sm:w-60 sm:h-72 lg:w-64 lg:h-80 rounded-2xl overflow-hidden border transition-all duration-300 shadow-xl ${
+                      className={`relative w-52 h-64 sm:w-60 sm:h-72 lg:w-64 lg:h-80 rounded-2xl overflow-hidden border backdrop-blur-md transition-all duration-300 shadow-xl ${
                         isDark
-                          ? 'bg-[#181818] border-[#2A2A2A] shadow-black/50 group-hover:border-[#3B82F6]/60'
-                          : 'bg-[#EAE8E0] border-[#D0CEC4] shadow-gray-300/60 group-hover:border-[#3B82F6]'
+                          ? 'bg-black/30 border-white/15 shadow-black/50 group-hover:border-[#3B82F6]/60'
+                          : 'bg-white/40 border-black/10 shadow-gray-300/60 group-hover:border-[#3B82F6]'
                       }`}
                     >
                       <img
@@ -455,14 +629,13 @@ export default function App() {
                     <h2 className="font-heading font-bold text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-tight">
                       Building skills, one problem at a time.
                     </h2>
-
-                    <p
+                    <TypewriterText
+                      text="I'm a Software Engineering student at Daffodil International University, currently in my 6th semester. I'm interested in learning modern technologies, improving my problem-solving skills, and gaining practical experience I can bring to real projects. Alongside my studies, I also work as a home tutor, which has strengthened my communication and organizational skills."
+                      speed={15}
                       className={`text-base sm:text-lg leading-relaxed font-normal max-w-3xl ${
                         isDark ? 'text-[#9C9C94]' : 'text-[#6B6B63]'
                       }`}
-                    >
-                      I'm a Software Engineering student at Daffodil International University, currently in my 6th semester. I'm interested in learning modern technologies, improving my problem-solving skills, and gaining practical experience I can bring to real projects. Alongside my studies, I also work as a home tutor, which has strengthened my communication and organizational skills.
-                    </p>
+                    />
                   </div>
                 </div>
               </div>
@@ -498,10 +671,10 @@ export default function App() {
 
                       {/* Timeline Item Content */}
                       <div
-                        className={`p-5 sm:p-6 rounded-xl border transition-all duration-300 ${
+                        className={`p-5 sm:p-6 rounded-xl border backdrop-blur-md transition-all duration-300 ${
                           isDark
-                            ? 'bg-[#141414] border-[#222222] hover:border-[#3B82F6]/40'
-                            : 'bg-[#FDFDFB] border-[#E2E0D6] hover:border-[#3B82F6]'
+                            ? 'bg-black/35 border-white/10 hover:border-[#3B82F6]/60'
+                            : 'bg-white/45 border-black/10 hover:border-[#3B82F6]'
                         }`}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -532,8 +705,11 @@ export default function App() {
         {/* Skills Section */}
         <section
           id="skills"
-          className="py-24 md:py-32 scroll-mt-20 border-t border-opacity-10 transition-colors"
-          style={{ borderColor: isDark ? '#262626' : '#E0DFD8' }}
+          className={`py-12 md:py-16 px-6 sm:px-10 md:px-12 my-12 rounded-3xl border backdrop-blur-xl shadow-2xl transition-all duration-300 scroll-mt-24 ${
+            isDark
+              ? 'bg-[#0D0D0D]/60 border-white/15 text-white shadow-black/80'
+              : 'bg-[#F5F4EF]/75 border-black/15 text-black shadow-black/10'
+          }`}
         >
           <Reveal>
             <div className="space-y-12">
@@ -560,10 +736,10 @@ export default function App() {
                       {group.skills.map((skill, skillIdx) => (
                         <span
                           key={skillIdx}
-                          className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default hover:scale-[1.02] ${
+                          className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border backdrop-blur-md transition-all duration-200 cursor-default hover:scale-[1.02] ${
                             isDark
-                              ? 'bg-[#141414] border-[#242424] text-[#F5F4EF] hover:border-[#3B82F6] hover:bg-[#1A1A1A]'
-                              : 'bg-[#EAE8E0] border-[#D8D6CC] text-[#111111] hover:border-[#3B82F6] hover:bg-[#E2E0D6]'
+                              ? 'bg-black/35 border-white/10 text-[#F5F4EF] hover:border-[#3B82F6] hover:bg-black/50'
+                              : 'bg-white/40 border-black/10 text-[#111111] hover:border-[#3B82F6] hover:bg-white/60'
                           }`}
                         >
                           {skill}
@@ -580,8 +756,11 @@ export default function App() {
         {/* Experience Section */}
         <section
           id="experience"
-          className="py-24 md:py-32 scroll-mt-20 border-t border-opacity-10 transition-colors"
-          style={{ borderColor: isDark ? '#262626' : '#E0DFD8' }}
+          className={`py-12 md:py-16 px-6 sm:px-10 md:px-12 my-12 rounded-3xl border backdrop-blur-xl shadow-2xl transition-all duration-300 scroll-mt-24 ${
+            isDark
+              ? 'bg-[#0D0D0D]/60 border-white/15 text-white shadow-black/80'
+              : 'bg-[#F5F4EF]/75 border-black/15 text-black shadow-black/10'
+          }`}
         >
           <Reveal>
             <div className="space-y-12">
@@ -611,10 +790,10 @@ export default function App() {
 
                     {/* Card Content */}
                     <div
-                      className={`p-6 sm:p-7 rounded-xl border transition-all duration-300 ${
+                      className={`p-6 sm:p-7 rounded-xl border backdrop-blur-md transition-all duration-300 ${
                         isDark
-                          ? 'bg-[#141414] border-[#222222] hover:border-[#3B82F6]/40'
-                          : 'bg-[#FDFDFB] border-[#E2E0D6] hover:border-[#3B82F6]'
+                          ? 'bg-black/35 border-white/10 hover:border-[#3B82F6]/60'
+                          : 'bg-white/45 border-black/10 hover:border-[#3B82F6]'
                       }`}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -636,13 +815,13 @@ export default function App() {
                         {exp.organization}
                       </p>
 
-                      <p
+                      <TypewriterText
+                        text={exp.description}
+                        speed={20}
                         className={`text-sm sm:text-base leading-relaxed ${
                           isDark ? 'text-[#9C9C94]' : 'text-[#6B6B63]'
                         }`}
-                      >
-                        {exp.description}
-                      </p>
+                      />
                     </div>
                   </div>
                 ))}
@@ -654,8 +833,11 @@ export default function App() {
         {/* Projects Section */}
         <section
           id="projects"
-          className="py-24 md:py-32 scroll-mt-20 border-t border-opacity-10 transition-colors"
-          style={{ borderColor: isDark ? '#262626' : '#E0DFD8' }}
+          className={`py-12 md:py-16 px-6 sm:px-10 md:px-12 my-12 rounded-3xl border backdrop-blur-xl shadow-2xl transition-all duration-300 scroll-mt-24 ${
+            isDark
+              ? 'bg-[#0D0D0D]/60 border-white/15 text-white shadow-black/80'
+              : 'bg-[#F5F4EF]/75 border-black/15 text-black shadow-black/10'
+          }`}
         >
           <Reveal>
             <div className="space-y-12">
@@ -671,10 +853,10 @@ export default function App() {
 
               {/* Featured Project Card (Full-Width Style) */}
               <div
-                className={`group relative rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl overflow-hidden ${
+                className={`group relative rounded-2xl border backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl overflow-hidden ${
                   isDark
-                    ? 'bg-[#141414] border-[#222222] hover:border-[#3B82F6]/50 hover:shadow-[#3B82F6]/10'
-                    : 'bg-[#FDFDFB] border-[#E2E0D6] hover:border-[#3B82F6] hover:shadow-[#3B82F6]/15'
+                    ? 'bg-black/35 border-white/10 hover:border-[#3B82F6]/60 hover:shadow-[#3B82F6]/10'
+                    : 'bg-white/45 border-black/10 hover:border-[#3B82F6] hover:shadow-[#3B82F6]/15'
                 }`}
               >
                 <div className="p-6 sm:p-8 md:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
@@ -709,13 +891,13 @@ export default function App() {
                       Parking Lot Management System
                     </h3>
 
-                    <p
+                    <TypewriterText
+                      text="Designed and developed a system to organize parking details and vehicle information. Implemented vehicle registration and slot availability tracking using file handling in C."
+                      speed={20}
                       className={`text-base sm:text-lg leading-relaxed ${
                         isDark ? 'text-[#9C9C94]' : 'text-[#6B6B63]'
                       }`}
-                    >
-                      Designed and developed a system to organize parking details and vehicle information. Implemented vehicle registration and slot availability tracking using file handling in C.
-                    </p>
+                    />
 
                     {/* Tech Stack Row */}
                     <div className="pt-2 flex flex-wrap items-center gap-2">
@@ -765,8 +947,11 @@ export default function App() {
         {/* Contact Section */}
         <section
           id="contact"
-          className="py-24 md:py-32 scroll-mt-20 border-t border-opacity-10 transition-colors"
-          style={{ borderColor: isDark ? '#262626' : '#E0DFD8' }}
+          className={`py-12 md:py-16 px-6 sm:px-10 md:px-12 my-12 rounded-3xl border backdrop-blur-xl shadow-2xl transition-all duration-300 scroll-mt-24 ${
+            isDark
+              ? 'bg-[#0D0D0D]/60 border-white/15 text-white shadow-black/80'
+              : 'bg-[#F5F4EF]/75 border-black/15 text-black shadow-black/10'
+          }`}
         >
           <Reveal>
             <div className="space-y-10 max-w-4xl">
@@ -781,24 +966,15 @@ export default function App() {
               </div>
 
               {/* Subtext */}
-              <p
+              <TypewriterText
+                text="Open to internships, tutoring opportunities, and collaborations. Feel free to reach out."
+                speed={25}
                 className={`text-lg sm:text-xl font-normal leading-relaxed max-w-2xl ${
                   isDark ? 'text-[#9C9C94]' : 'text-[#6B6B63]'
                 }`}
-              >
-                Open to internships, tutoring opportunities, and collaborations. Feel free to reach out.
-              </p>
+              />
 
-              {/* Prominent Mailto Button/Link */}
-              <div className="pt-2">
-                <a
-                  href="mailto:beingzannat24@gmail.com"
-                  className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#3B82F6] text-white font-bold text-base sm:text-lg tracking-wide transition-all duration-300 hover:bg-[#2563EB] hover:shadow-xl hover:shadow-[#3B82F6]/20 active:scale-[0.98]"
-                >
-                  <Mail className="w-5 h-5 text-[#0D0D0D]" />
-                  <span>Say Hello → beingzannat24@gmail.com</span>
-                </a>
-              </div>
+
 
               {/* Contact Details & Social Links Row */}
               <div
@@ -806,20 +982,8 @@ export default function App() {
                   isDark ? 'border-[#222222]' : 'border-[#E2E0D6]'
                 }`}
               >
-                {/* Phone & Location */}
+                {/* Location */}
                 <div className="flex flex-wrap items-center gap-6 sm:gap-8 text-sm sm:text-base font-medium">
-                  <a
-                    href="tel:+8801827645591"
-                    className={`flex items-center gap-2.5 transition-colors ${
-                      isDark
-                        ? 'text-[#9C9C94] hover:text-[#3B82F6]'
-                        : 'text-[#6B6B63] hover:text-[#3B82F6]'
-                    }`}
-                  >
-                    <Phone className="w-4 h-4 text-[#3B82F6]" />
-                    <span>+880 1827-645591</span>
-                  </a>
-
                   <div
                     className={`flex items-center gap-2.5 ${
                       isDark ? 'text-[#9C9C94]' : 'text-[#6B6B63]'
@@ -906,12 +1070,12 @@ export default function App() {
         </section>
       </main>
 
-      {/* Thin Footer */}
+      {/* Thin Glass Footer */}
       <footer
-        className={`border-t transition-colors py-8 text-xs sm:text-sm font-medium ${
+        className={`max-w-7xl mx-auto px-6 py-6 mb-8 rounded-2xl border backdrop-blur-xl shadow-xl transition-all text-xs sm:text-sm font-medium ${
           isDark
-            ? 'border-[#222222] bg-[#0A0A0A] text-[#9C9C94]'
-            : 'border-[#E0DFD8] bg-[#EAE8E0]/40 text-[#6B6B63]'
+            ? 'border-white/15 bg-[#0D0D0D]/70 text-[#9C9C94]'
+            : 'border-black/10 bg-[#F5F4EF]/80 text-[#6B6B63]'
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -929,6 +1093,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
